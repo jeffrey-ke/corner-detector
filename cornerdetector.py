@@ -142,7 +142,7 @@ def denormalize_corners(corners: torch.Tensor, width: int, height: int) -> torch
     return c
 
 
-def denormalize(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
+def denormalize_px(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
     """Denormalized tensor in [0, 1] range"""
     mean = torch.tensor(mean).view(3, 1, 1)
     std = torch.tensor(std).view(3, 1, 1)
