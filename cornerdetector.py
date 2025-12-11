@@ -453,7 +453,7 @@ def main():
     
     # Model
     parser.add_argument('--model', type=str, choices=['simple', 'cornernet'], 
-                       default='cornernet', help='Model architecture')
+                       default='simple', help='Model architecture')
     parser.add_argument('--input-size', type=int, nargs=2, default=[224, 224],
                        help='Input image size (H W)')
     
