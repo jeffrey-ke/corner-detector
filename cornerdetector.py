@@ -30,9 +30,9 @@ from functools import partial
 from .dataloader import CornerSet, ImgCorners
 
 
-def prepare_corner_model(device="cuda"):
+def prepare_corner_model(device="cuda", path_to_ckpt="CornerDetector/best.pt"):
     corner_model = SimpleCNN(8, (224, 224)).to(device)
-    corner_model.load_state_dict(torch.load(os.path.join("CornerDetector", "best.pt"), map_location=device)['model_state_dict'])
+    corner_model.load_state_dict(torch.load(path_to_ckpt, map_location=device)['model_state_dict'])
     denorm = partial(denormalize_corners, height=1080, width=1920)
     corner_model = TransformOutputs(
             corner_model,
@@ -144,8 +144,8 @@ def denormalize_corners(corners: torch.Tensor, width: int, height: int) -> torch
 
 def denormalize_px(tensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
     """Denormalized tensor in [0, 1] range"""
-    mean = torch.tensor(mean).view(3, 1, 1)
-    std = torch.tensor(std).view(3, 1, 1)
+    mean = torch.tensor(mean).view(3, 1, 1).to(tensor)
+    std = torch.tensor(std).view(3, 1, 1).to(tensor)
     return (tensor * std + mean).clamp(0, 1)
 
 
