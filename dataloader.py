@@ -1,4 +1,5 @@
 from __future__ import annotations
+import itertools
 import os
 from dataclasses import dataclass
 from typing import List
@@ -39,8 +40,18 @@ class ImgCorners:
         return ImgCorners(imgs, corners)
 
 class CornerSet(Dataset):
-    def __init__(self, render_dir):
-        self.data = []
+    def __init__(self, dataset_path):
+        all_render_dirs = self.find_render_dirs(dataset_path)
+        all_samples = self.process_all_dirs(all_render_dirs)
+    
+    def process_all_dirs(self, render_dirs):
+        return list(
+            itertools.chain.from_iterable(
+                self.process_one_dir(directory) for direc in all_render_dirs
+            )
+        )
+        
+    def process_one_dir(self, render_dir):
         if not os.path.exists(render_dir):
             raise FileNotFoundError(f"{render_dir} not found!!")
         imgs_dir, bboxes_dir, calibs_dir = self._find_dirs(render_dir)
@@ -50,38 +61,18 @@ class CornerSet(Dataset):
             sorted([path for path in os.listdir(calibs_dir) if re.match(r"camera_params_\d+", path)])
         ):
             full_img = os.path.join(imgs_dir, img_path)
-            if not self._is_valid_image(full_img):
-                # skip corrupted image and its paired data
-                continue
-            self.data.append(
-                Datum(
+            yield Datum(
                     full_img,
                     os.path.join(bboxes_dir, bbox_path),
                     os.path.join(calibs_dir, calib_path)
-                )
             )
-
-    def _is_valid_image(self, path):
-        try:
-            with Image.open(path) as im:
-                im.verify()  # verify header
-            return True
-        except Exception:
-            return False
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         datum = self.data[idx]
-        try:
-            img = torchvision.io.read_image(datum.img_path, mode=torchvision.io.ImageReadMode.RGB)
-        except Exception:
-            bgr = cv2.imread(datum.img_path, cv2.IMREAD_COLOR)
-            if bgr is None:
-                raise RuntimeError(f"Failed to read image (corrupted): {datum.img_path}")
-            rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-            img = torch.from_numpy(rgb).permute(2, 0, 1).contiguous()
+        img = torchvision.io.read_image(datum.img_path, mode=torchvision.io.ImageReadMode.RGB)
 
         bboxes = np.load(datum.bbox_path)
         # Take only first bbox (adjust if you need all)
